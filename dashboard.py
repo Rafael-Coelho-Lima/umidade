@@ -39,7 +39,8 @@ placeholder = st.empty()
 with placeholder.container():
     dados_json = get_data()
 
-    if dados_json and 'feeds' in dados_json and len(dados_json['feeds']) > 0:
+    # Verifica se dados_json é realmente um dicionário (e não um código de erro -1)
+    if isinstance(dados_json, dict) and 'feeds' in dados_json and len(dados_json['feeds']) > 0:
         feeds = dados_json['feeds']
         last_entry = feeds[-1]
         
@@ -90,4 +91,5 @@ with placeholder.container():
 
 # Rodapé
 st.markdown("---")
+
 st.caption("Atualize a página para ver novos dados.")
