@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import time
+import plotly.express as px
 
 # --- CONFIGURAÇÕES ---
 # IMPORTANTE: Troque pelo ID do SEU canal no ThingSpeak (é apenas o número)
@@ -20,7 +21,7 @@ st.markdown("---")
 # Função para buscar dados no ThingSpeak
 def get_data():
     # Busca os últimos 100 resultados
-    url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results=100"
+    url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results=8000"
     try:
         response = requests.get(url)
         data = response.json()
@@ -93,3 +94,4 @@ with placeholder.container():
 st.markdown("---")
 
 st.caption("Atualize a página para ver novos dados.")
+
