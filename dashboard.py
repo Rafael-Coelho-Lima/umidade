@@ -81,7 +81,8 @@ with placeholder.container():
             df = df.rename(columns={'created_at': 'Hora', 'field1': 'Umidade (%)'})
             
             # Plota o gráfico de linha
-            st.line_chart(df, x='Hora', y='Umidade (%)')
+            fig = px.line(df, x='Hora', y='Umidade (%)', title='Histórico Completo')
+            st.plotly_chart(fig, use_container_width=True)
             
             st.caption(f"Última atualização: {last_entry['created_at']}")
             
@@ -94,4 +95,5 @@ with placeholder.container():
 st.markdown("---")
 
 st.caption("Atualize a página para ver novos dados.")
+
 
