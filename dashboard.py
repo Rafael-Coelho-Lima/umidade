@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
 import requests
-import time
-import plotly.express as px  # <--- NOVA IMPORTAÇÃO NECESSÁRIA
+import plotly.express as px
+from datetime import datetime, timedelta
 
 # --- CONFIGURAÇÕES ---
-# IMPORTANTE: Troque pelo ID do SEU canal no ThingSpeak (somente números)
 CHANNEL_ID = "3204291" 
 
 st.set_page_config(
@@ -14,13 +13,31 @@ st.set_page_config(
     layout="centered"
 )
 
-# Título e Cabeçalho
 st.title("🌱 Monitoramento de Umidade")
 st.markdown("---")
 
-# Função para buscar dados no ThingSpeak
+# --- BARRA LATERAL (CONTROLES) ---
+st.sidebar.header("Configurações")
+
+# 1. Botão de Atualizar
+if st.sidebar.button('🔄 Atualizar Dados'):
+    st.rerun()
+
+st.sidebar.markdown("---")
+
+# 2. SELETOR DE DATA (A Mágica acontece aqui)
+# Por padrão, define a data inicial para 7 dias atrás
+data_padrao = datetime.now() - timedelta(days=7)
+
+data_selecionada = st.sidebar.date_input(
+    "Visualizar dados a partir de:",
+    value=data_padrao,
+    format="DD/MM/YYYY"
+)
+
+# --- FUNÇÃO DE DADOS ---
 def get_data():
-    # <--- ALTERADO AQUI: Mudamos de 100 para 8000 para pegar todo o histórico
+    # Buscamos 8000 pontos (aprox 5 dias se for min a min, ou mais se for espaçado)
     url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results=8000"
     try:
         response = requests.get(url)
@@ -29,37 +46,42 @@ def get_data():
     except:
         return None
 
-# Botão de atualização manual na barra lateral
-if st.sidebar.button('🔄 Atualizar Agora'):
-    st.rerun()
-
-# Espaço reservado para os dados
+# --- PROCESSAMENTO PRINCIPAL ---
 placeholder = st.empty()
 
-# Container principal
 with placeholder.container():
     dados_json = get_data()
 
-    # Verifica se os dados são válidos
     if isinstance(dados_json, dict) and 'feeds' in dados_json and len(dados_json['feeds']) > 0:
         feeds = dados_json['feeds']
-        last_entry = feeds[-1]
+        df = pd.DataFrame(feeds)
         
-        # Processa o valor atual
-        raw_value = last_entry['field1']
+        # --- TRATAMENTO DE DATA ---
+        df['created_at'] = pd.to_datetime(df['created_at'])
+        # Ajuste de Fuso Horário (-3h para Brasil)
+        df['created_at'] = df['created_at'] - pd.Timedelta(hours=3)
         
-        # Verifica se o valor não é nulo
-        if raw_value:
-            umidade_atual = float(raw_value)
+        # --- APLICAÇÃO DO FILTRO (DINÂMICO) ---
+        # Converte a data escolhida no calendário para formato comparável
+        data_corte_dt = pd.to_datetime(data_selecionada)
+        
+        # Filtra: Mantém tudo que for MAIOR ou IGUAL à data escolhida (00:00h)
+        df_filtrado = df[df['created_at'] >= data_corte_dt]
+        
+        # --- EXIBIÇÃO ---
+        if not df_filtrado.empty:
+            df_filtrado['field1'] = pd.to_numeric(df_filtrado['field1'])
             
-            # --- MÉTRICAS ---
+            # Pega a última leitura (do período filtrado)
+            ultima_leitura = df_filtrado.iloc[-1]
+            umidade_atual = float(ultima_leitura['field1'])
+            hora_atual = ultima_leitura['created_at']
+            
+            # Métricas
             col1, col2 = st.columns(2)
-            
             with col1:
-                st.metric(label="Umidade do Solo", value=f"{umidade_atual}%")
-            
+                st.metric(label="Umidade Atual", value=f"{umidade_atual}%")
             with col2:
-                # Lógica de Status (Ajuste seus limiares aqui)
                 if umidade_atual < 30:
                     st.error("⚠️ Solo Seco! Regar.")
                 elif umidade_atual > 80:
@@ -67,37 +89,22 @@ with placeholder.container():
                 else:
                     st.success("✅ Umidade Ideal.")
 
-            # --- GRÁFICO (PLOTLY) ---
-            st.subheader("Histórico Completo")
+            # Gráfico
+            st.subheader(f"Histórico")
+            st.caption(f"Mostrando dados desde {data_selecionada.strftime('%d/%m/%Y')}")
             
-            # Cria DataFrame para o gráfico
-            df = pd.DataFrame(feeds)
-            
-            # Converte a coluna de data para o formato correto (Timezone Brasil)
-            df['created_at'] = pd.to_datetime(df['created_at'])
-            # Ajuste opcional de fuso horário (-3h se o servidor estiver em UTC)
-            # df['created_at'] = df['created_at'] - pd.Timedelta(hours=3)
-
-            # Converte a coluna de valor para número
-            df['field1'] = pd.to_numeric(df['field1'])
-            
-            # Renomeia para ficar bonito no gráfico
-            df = df.rename(columns={'created_at': 'Hora', 'field1': 'Umidade (%)'})
-            
-            # Plota o gráfico INTERATIVO com Plotly
-            fig = px.line(df, x='Hora', y='Umidade (%)')
-            
-            # <--- CORREÇÃO APLICADA AQUI: width="stretch"
+            df_grafico = df_filtrado.rename(columns={'created_at': 'Hora', 'field1': 'Umidade (%)'})
+            fig = px.line(df_grafico, x='Hora', y='Umidade (%)')
             st.plotly_chart(fig, width="stretch")
             
-            st.caption(f"Última atualização: {last_entry['created_at']}")
+            st.caption(f"Última leitura: {hora_atual.strftime('%d/%m/%Y %H:%M')}")
             
         else:
-            st.warning("Recebendo dados vazios. Verifique o sensor.")
+            # Caso o usuário escolha uma data futura ou sem dados
+            st.warning(f"Não foram encontrados dados a partir de {data_selecionada.strftime('%d/%m/%Y')}.")
+            st.info("Tente selecionar uma data anterior no menu ao lado.")
+
     else:
-        st.info("Aguardando conexão com o ThingSpeak ou dados insuficientes...")
+        st.info("Aguardando conexão com o ThingSpeak...")
 
-# Rodapé
 st.markdown("---")
-st.caption("Atualize a página para ver novos dados.")
-
