@@ -5,7 +5,7 @@ import plotly.express as px
 from datetime import datetime, timedelta
 
 # --- CONFIGURAÇÕES ---
-CHANNEL_ID = "3204291" 
+CHANNEL_ID = "3204291" # <--- CONFIRA SEU ID AQUI
 
 st.set_page_config(
     page_title="Monitor de Jardim",
@@ -19,14 +19,12 @@ st.markdown("---")
 # --- BARRA LATERAL (CONTROLES) ---
 st.sidebar.header("Configurações")
 
-# 1. Botão de Atualizar
 if st.sidebar.button('🔄 Atualizar Dados'):
     st.rerun()
 
 st.sidebar.markdown("---")
 
-# 2. SELETOR DE DATA (A Mágica acontece aqui)
-# Por padrão, define a data inicial para 7 dias atrás
+# SELETOR DE DATA
 data_padrao = datetime.now() - timedelta(days=7)
 
 data_selecionada = st.sidebar.date_input(
@@ -37,7 +35,6 @@ data_selecionada = st.sidebar.date_input(
 
 # --- FUNÇÃO DE DADOS ---
 def get_data():
-    # Buscamos 8000 pontos (aprox 5 dias se for min a min, ou mais se for espaçado)
     url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results=8000"
     try:
         response = requests.get(url)
@@ -61,18 +58,15 @@ with placeholder.container():
         # Ajuste de Fuso Horário (-3h para Brasil)
         df['created_at'] = df['created_at'] - pd.Timedelta(hours=3)
         
-        # --- APLICAÇÃO DO FILTRO (DINÂMICO) ---
-        # Converte a data escolhida no calendário para formato comparável
-        data_corte_dt = pd.to_datetime(data_selecionada)
-        
-        # Filtra: Mantém tudo que for MAIOR ou IGUAL à data escolhida (00:00h)
-        df_filtrado = df[df['created_at'] >= data_corte_dt]
+        # --- APLICAÇÃO DO FILTRO (CORRIGIDO) ---
+        # Aqui usamos .dt.date para pegar apenas a parte do "Dia" da coluna de data e hora
+        df_filtrado = df[df['created_at'].dt.date >= data_selecionada]
         
         # --- EXIBIÇÃO ---
         if not df_filtrado.empty:
             df_filtrado['field1'] = pd.to_numeric(df_filtrado['field1'])
             
-            # Pega a última leitura (do período filtrado)
+            # Pega a última leitura
             ultima_leitura = df_filtrado.iloc[-1]
             umidade_atual = float(ultima_leitura['field1'])
             hora_atual = ultima_leitura['created_at']
@@ -100,7 +94,6 @@ with placeholder.container():
             st.caption(f"Última leitura: {hora_atual.strftime('%d/%m/%Y %H:%M')}")
             
         else:
-            # Caso o usuário escolha uma data futura ou sem dados
             st.warning(f"Não foram encontrados dados a partir de {data_selecionada.strftime('%d/%m/%Y')}.")
             st.info("Tente selecionar uma data anterior no menu ao lado.")
 
