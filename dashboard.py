@@ -33,6 +33,18 @@ data_selecionada = st.sidebar.date_input(
     format="DD/MM/YYYY"
 )
 
+# --- BOTÃO DE DOWNLOAD ---
+# Só mostra o botão se houver dados carregados
+if 'df_filtrado' in locals() and not df_filtrado.empty:
+    csv = df_filtrado.to_csv(index=False).encode('utf-8')
+    
+    st.sidebar.download_button(
+        label="📥 Baixar Dados (CSV)",
+        data=csv,
+        file_name='historico_umidade.csv',
+        mime='text/csv',
+    )
+
 # --- FUNÇÃO DE DADOS ---
 def get_data():
     url = f"https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results=8000"
@@ -90,6 +102,15 @@ with placeholder.container():
             df_grafico = df_filtrado.rename(columns={'created_at': 'Hora', 'field1': 'Umidade (%)'})
             fig = px.line(df_grafico, x='Hora', y='Umidade (%)')
             st.plotly_chart(fig, width="stretch")
+
+            st.markdown("### Exportar Dados")
+            csv = df_filtrado.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Baixar Planilha (CSV)",
+                data=csv,
+                file_name=f'umidade_{data_selecionada}.csv',
+                mime='text/csv',
+            )
             
             st.caption(f"Última leitura: {hora_atual.strftime('%d/%m/%Y %H:%M')}")
             
@@ -101,3 +122,4 @@ with placeholder.container():
         st.info("Aguardando conexão com o ThingSpeak...")
 
 st.markdown("---")
+
