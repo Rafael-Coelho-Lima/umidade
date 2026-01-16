@@ -6,7 +6,7 @@ import plotly.express as px  # <--- NOVA IMPORTAÇÃO NECESSÁRIA
 
 # --- CONFIGURAÇÕES ---
 # IMPORTANTE: Troque pelo ID do SEU canal no ThingSpeak (somente números)
-CHANNEL_ID = "SEU_CHANNEL_ID_AQUI" 
+CHANNEL_ID = "3204291" 
 
 st.set_page_config(
     page_title="Monitor de Jardim",
@@ -100,3 +100,4 @@ with placeholder.container():
 # Rodapé
 st.markdown("---")
 st.caption("Atualize a página para ver novos dados.")
+
