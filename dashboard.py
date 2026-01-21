@@ -130,8 +130,8 @@ with placeholder.container():
             if sensores_ativos:
                 fig = px.line(df_grafico, x="Hora", y=sensores_ativos)
                 fig.update_layout(
-                    xaxis_title="Largura da Sepala (cm)",
-                    yaxis_title="Comprimento da Sepala (cm)"
+                    xaxis_title="Hora",
+                    yaxis_title="Umidade (%)"
                 )
                 st.plotly_chart(fig, width="stretch")
 
@@ -156,6 +156,7 @@ with placeholder.container():
         st.info("Aguardando conexão com o ThingSpeak...(Verifique se o script ponte.py esta rodando)")
 
 st.markdown("---")
+
 
 
 
