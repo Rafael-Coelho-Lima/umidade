@@ -8,27 +8,25 @@ from datetime import datetime, timedelta
 CHANNEL_ID = "3204291" # <--- CONFIRA SEU ID AQUI
 
 st.set_page_config(
-    page_title="Monitor de Jardim",
+    page_title="Monitoramento de Umidade",
     page_icon="🌱",
-    layout="centered"
+    layout="wide"
 )
 
 st.title("🌱 Monitoramento de Umidade")
 st.markdown("---")
 
 # --- BARRA LATERAL (CONTROLES) ---
-st.sidebar.header("Configurações")
+st.sidebar.header("Painel de Controle")
 
 if st.sidebar.button('🔄 Atualizar Dados'):
     st.rerun()
 
-st.sidebar.markdown("---")
-
-# SELETOR DE DATA
+st.sidebar.mardown("### Filtros")
+# Data padrao: ultimos 7 dias
 data_padrao = datetime.now() - timedelta(days=7)
-
 data_selecionada = st.sidebar.date_input(
-    "Visualizar dados a partir de:",
+    "Visualizar a partir de:",
     value=data_padrao,
     format="DD/MM/YYYY"
 )
@@ -76,35 +74,67 @@ with placeholder.container():
         
         # --- EXIBIÇÃO ---
         if not df_filtrado.empty:
-            df_filtrado['field1'] = pd.to_numeric(df_filtrado['field1'])
-            
-            # Pega a última leitura
+            # Converte TODAS as colunas de fields para numero
+            cols_sensores = ['field1', 'field2', 'field3', 'field4', 'field5', 'field6']
+            nomes_bonitos = {
+                'field1': 'Sensor 1',
+                'field2': 'Sensor 2', 
+                'field3': 'Sensor 3', 
+                'field4': 'Sensor 4', 
+                'field5': 'Sensor 5',
+                'field6': 'Sensor 6'
+            }
+            # Converte colunas para numero, ignorando erros
+            for col in cols_sensores:
+                if col in df_filtrado.columns:
+                    df_filtrado[col] = pd.to_numeric(df_filtrado[col], errors='coerce')
+
+            # Pega a ultima leitura
             ultima_leitura = df_filtrado.iloc[-1]
-            umidade_atual = float(ultima_leitura['field1'])
             hora_atual = ultima_leitura['created_at']
             
             # Métricas
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric(label="Umidade Atual", value=f"{umidade_atual}%")
-            with col2:
-                if umidade_atual < 30:
-                    st.error("⚠️ Solo Seco! Regar.")
-                elif umidade_atual > 80:
-                    st.info("💧 Solo Encharcado.")
-                else:
-                    st.success("✅ Umidade Ideal.")
+            st.subheader("Status Atual")
+            cols = st.columns(6) # Cria 6 colunas visuais
 
-            # Gráfico
-            st.subheader(f"Histórico")
-            st.caption(f"Mostrando dados desde {data_selecionada.strftime('%d/%m/%Y')}")
+            sensores_ativos = [] # Lista para guardar quais sensores tem dados para o grafico
             
-            df_grafico = df_filtrado.rename(columns={'created_at': 'Hora', 'field1': 'Umidade (%)'})
-            fig = px.line(df_grafico, x='Hora', y='Umidade (%)')
-            st.plotly_chart(fig, width="stretch")
+            for i, col_name in enumerate(cols_sensores):
+                #Verifica se o dado existe (caso o ThinkSpeak retorne null em algum)
+                if  col_name in ultima_leitura and not pd.isna(ultima_leitura[col_name]):
+                    valor = float(ultima_leitura[col_name])
+                    sensores_ativos.append(nomes_bonitos[col_name])
+                    
+                    with cols[i]:
+                        st.metric(label=nomes_bonitos[col_name], value=f"{valor:.0f}%")
+                        # Mini logica de cor (opcional)
+                        if valor < 30:
+                            st.caption("⚠️ Seco")
+                        elif valor > 80:
+                            st.caption("💧 Encharcado")
+                        else:
+                            st.caption("✅ Úmido")
 
+            if not senore_ativos:
+                st.warning("Nenhum sensor ativo detectado no momento.")
+                
+            # --- SECAO DE GRAFICO ---
+            st.markdown("---")
+            st.subheader(f"Histórico")
+            st.caption(f"Exibindo dados desde: {data_selecionada.strftime('%d/%m/%Y')}")
+            
+            #Renomeie as colunas para o gráfico ficar bonito
+            df_grafico = df_filtrado.rename(columns={'created_at': 'Hora', **nomes_bonitos})
+
+            # Cria grafico apenas com os sensores ativos
+            if sensores_ativos:
+                fig = px.line(df_grafico, x="Hora", y=sensores_ativos)
+                st.plotly_chart(fig, width="stretch")
+
+            # --- SECAO DE DOUNLOAD ---            
             st.markdown("### Exportar Dados")
             csv = df_filtrado.to_csv(index=False).encode('utf-8')
+            
             st.download_button(
                 label="📥 Baixar Planilha (CSV)",
                 data=csv,
@@ -116,10 +146,11 @@ with placeholder.container():
             
         else:
             st.warning(f"Não foram encontrados dados a partir de {data_selecionada.strftime('%d/%m/%Y')}.")
-            st.info("Tente selecionar uma data anterior no menu ao lado.")
+            st.info("Tente selecionar uma data anterior no menu lateral.")
 
     else:
-        st.info("Aguardando conexão com o ThingSpeak...")
+        st.info("Aguardando conexão com o ThingSpeak...(Verifique se o script ponte.py esta rodando)")
 
 st.markdown("---")
+
 
