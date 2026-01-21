@@ -128,7 +128,7 @@ with placeholder.container():
 
             # Cria grafico apenas com os sensores ativos
             if sensores_ativos:
-                fig = px.line(df_grafico, x="Hora", y="sensores_ativos")
+                fig = px.line(df_grafico, x="Hora", y=sensores_ativos, labels={"sepal_length": "Length (cm)", "sepal_width": "Width (cm)"})
                 st.plotly_chart(fig, width="stretch")
 
             # --- SECAO DE DOUNLOAD ---            
@@ -152,6 +152,7 @@ with placeholder.container():
         st.info("Aguardando conexão com o ThingSpeak...(Verifique se o script ponte.py esta rodando)")
 
 st.markdown("---")
+
 
 
 
