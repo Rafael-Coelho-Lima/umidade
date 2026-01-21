@@ -115,7 +115,7 @@ with placeholder.container():
                         else:
                             st.caption("✅ Úmido")
 
-            if not senore_ativos:
+            if not sensores_ativos:
                 st.warning("Nenhum sensor ativo detectado no momento.")
                 
             # --- SECAO DE GRAFICO ---
@@ -152,6 +152,7 @@ with placeholder.container():
         st.info("Aguardando conexão com o ThingSpeak...(Verifique se o script ponte.py esta rodando)")
 
 st.markdown("---")
+
 
 
 
