@@ -22,7 +22,7 @@ st.sidebar.header("Painel de Controle")
 if st.sidebar.button('🔄 Atualizar Dados'):
     st.rerun()
 
-st.sidebar.mardown("### Filtros")
+st.sidebar.markdown("### Filtros")
 # Data padrao: ultimos 7 dias
 data_padrao = datetime.now() - timedelta(days=7)
 data_selecionada = st.sidebar.date_input(
@@ -152,5 +152,6 @@ with placeholder.container():
         st.info("Aguardando conexão com o ThingSpeak...(Verifique se o script ponte.py esta rodando)")
 
 st.markdown("---")
+
 
 
